@@ -50,7 +50,7 @@ local function executeCycle(delay)
         root.CFrame = SUMMIT_CFRAME
         
         -- ** JEDA 2 DETIK SETELAH TELEPORT (SESUAI PERMINTAAN USER) **
-        task.wait(2) 
+        task.wait(5) 
         
         -----------------------------------
         -- 2. RESET/KILL KARAKTER
@@ -130,7 +130,7 @@ local SummitTab = Window:Tab("Mount Taranjang", "rbxassetid://10723407389")
 SummitTab:Seperator("Auto Summit Settings by " .. Author);
 
 -- Textbox Loop Count: Perbarui variabel global saat nilai berubah
-local TeleportCountTextbox = SummitTab:Textbox("Loop Count (0 = Infinite)", "10", function(value)
+local TeleportCountTextbox = SummitTab:Textbox("JUMLAH SUMMIT", "10", function(value)
     local count = tonumber(value)
     if count and count >= 0 then
         teleportsLeft = (count == 0) and -1 or math.floor(count) 
@@ -138,7 +138,7 @@ local TeleportCountTextbox = SummitTab:Textbox("Loop Count (0 = Infinite)", "10"
 end)
 
 -- Textbox Delay: Perbarui variabel global saat nilai berubah
-local DelayTextbox = SummitTab:Textbox("Delay (seconds)", "2", function(value)
+local DelayTextbox = SummitTab:Textbox("DELAY", "2", function(value)
     local delay = tonumber(value)
     if delay and delay >= 0.1 then
         delayTime = delay
