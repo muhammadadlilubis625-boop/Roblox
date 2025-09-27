@@ -2,7 +2,8 @@
     ================================================
     MOUNT TARANJANG AUTO SUMMIT - STELLAR SINGLE TAB
     FINAL FIX: Memperbaiki masalah Auto Loop dan Teleport
-    yang gagal karena timing executor yang ketat.
+    yang gagal karena timing executor yang ketat. Menggunakan
+    metode langsung (tanpa event wait) untuk stabilitas Delta.
     ================================================
 ]]
 
@@ -24,6 +25,7 @@ end;
 -- 2. LOGIKA TELEPORTASI
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
 
 -- Set nilai default dari Textbox saat inisialisasi
 local running = false
@@ -35,9 +37,6 @@ local function teleportToSummit()
     local oldChar = player.Character
     local humanoid
     
-    -- 1. Siapkan sinyal untuk menunggu karakter BARU sebelum melakukan kill
-    local newCharSignal = player.CharacterAdded:Once()
-    
     -- Lakukan kill jika karakter lama ada
     if oldChar then
         humanoid = oldChar:FindFirstChildOfClass("Humanoid")
@@ -46,18 +45,8 @@ local function teleportToSummit()
         end
     end
 
-    -- 2. Tunggu sampai karakter baru muncul (menggunakan sinyal yang sudah disiapkan)
-    local newChar = newCharSignal:Wait()
-    
-    -- 3. Tunggu hingga HumanoidRootPart muncul (penting!)
-    local humanoidRootPart = newChar:WaitForChild("HumanoidRootPart", 10)
-    
-    if humanoidRootPart then
-        -- Lakukan teleportasi
-        humanoidRootPart.CFrame = SUMMIT_CFRAME
-    else
-        StellarLibrary:Notify("Gagal: HumanoidRootPart tidak ditemukan.", 2);
-    end
+    -- Kunci: Kita biarkan loop utama menangani timing respawn dan teleport
+    -- Tidak ada 'wait' event di sini
 end
 
 
@@ -78,9 +67,31 @@ local function startTeleportLoop(count, delay)
 
     task.spawn(function()
         while running and (teleportsLeft > 0 or teleportsLeft == -1) do
-            -- Panggil fungsi teleportasi yang sudah diperbaiki
-            teleportToSummit() 
             
+            -- Lakukan Kill, ini akan memicu respawn
+            pcall(teleportToSummit) 
+
+            -- **INTI PERBAIKAN LOOP:** Tunggu hingga karakter baru muncul dan dimuat
+            task.wait(0.5) -- Beri sedikit waktu agar game memproses kematian
+            
+            local success, newChar = pcall(function()
+                return player.Character or player.CharacterAdded:Wait()
+            end)
+            
+            if success and newChar then
+                local success2, root = pcall(function()
+                    return newChar:WaitForChild("HumanoidRootPart", 5)
+                end)
+                
+                if success2 and root then
+                    -- Lakukan Teleport (ini yang gagal di percobaan sebelumnya)
+                    pcall(function()
+                        root.CFrame = SUMMIT_CFRAME
+                    end)
+                end
+            end
+            
+            -- Tunggu delay antar loop
             if delayTime > 0 then task.wait(delayTime) end
             
             if teleportsLeft > 0 then
