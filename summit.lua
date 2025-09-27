@@ -2,7 +2,7 @@
     ================================================
     MOUNT TARANJANG AUTO SUMMIT - STELLAR SINGLE TAB
     LOGIKA BARU: Teleport -> Reset -> Delay (Patokan user).
-    Urutan: Teleport ke Summit -> Reset Karakter -> Wait Respawn -> Delay.
+    Urutan: Teleport ke Summit -> 2 Detik Jeda -> Reset Karakter -> Wait Respawn -> Delay.
     ================================================
 ]]
 
@@ -48,6 +48,9 @@ local function executeCycle(delay)
         -- 1. TELEPORT KE SUMMIT
         -----------------------------------
         root.CFrame = SUMMIT_CFRAME
+        
+        -- ** JEDA 2 DETIK SETELAH TELEPORT (SESUAI PERMINTAAN USER) **
+        task.wait(2) 
         
         -----------------------------------
         -- 2. RESET/KILL KARAKTER
