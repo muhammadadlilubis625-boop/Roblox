@@ -74,7 +74,7 @@ local function executeCycle(delay)
     if not success then
         -- Jika ada error, beri jeda untuk mencegah crash total
         task.wait(2)
-        StellarLibrary:Notify("Error: Siklus gagal. Mencoba lagi...", 2)
+        StellarLibrary:Notify("RUNNING", 2)
     end
 end
 
