@@ -1,7 +1,8 @@
 --[[ 
     ================================================
     MOUNT TARANJANG AUTO SUMMIT - STELLAR SINGLE TAB
-    Hanya menggunakan satu tab untuk fitur Teleport.
+    Fix: Logika teleportasi diperkuat agar Auto Loop
+    berjalan stabil setelah respawn (di Delta).
     ================================================
 ]]
 
@@ -10,7 +11,7 @@ local Author = "Rafaczx"
 local SUMMIT_CFRAME = CFrame.new(8711.95215, 1637.02124, 1343.46667, 0.375418901, -4.74302198e-09, 0.926855266, 1.80503723e-10, 1, 5.04421527e-09, -0.926855266, -1.72639292e-09, 0.375418901)
 -- ================================================
 
--- 1. MEMUAT LIBRARY STELLAR (Wajib, karena fungsi GUI tergantung padanya)
+-- 1. MEMUAT LIBRARY STELLAR
 local StellarLibrary = (loadstring(Game:HttpGet("https://raw.githubusercontent.com/x2zu/OPEN-SOURCE-UI-ROBLOX/refs/heads/main/X2ZU%20UI%20ROBLOX%20OPEN%20SOURCE/NewUiStellar.lua")))();
 
 if StellarLibrary:LoadAnimation() then
@@ -20,7 +21,7 @@ if StellarLibrary:LoadAnimation() then
 	StellarLibrary:Loaded();
 end;
 
--- 2. LOGIKA TELEPORTASI (Inti Skrip)
+-- 2. LOGIKA TELEPORTASI (Diperkuat)
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
@@ -36,15 +37,29 @@ local function teleportToSummit()
     end
     
     local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.Health = 0
+    if not humanoid then return end
+
+    -- 1. Kill the character
+    humanoid.Health = 0
+    
+    -- 2. Wajib: Tunggu sampai karakter lama hilang (karakter = nil)
+    while player.Character ~= nil do
+        task.wait()
     end
     
-    player.CharacterAdded:Wait()
-    char = player.Character
-    local humanoidRootPart = char:WaitForChild("HumanoidRootPart")
+    -- 3. Wajib: Tunggu sampai karakter baru muncul (menggunakan CharacterAdded)
+    local newChar = player.Character
+    while newChar == nil do
+        -- Gunakan CharacterAdded:Wait untuk menunggu event, lalu cek lagi
+        player.CharacterAdded:Wait()
+        newChar = player.Character
+    end
     
-    humanoidRootPart.CFrame = SUMMIT_CFRAME
+    -- 4. Teleport karakter baru
+    local humanoidRootPart = newChar:WaitForChild("HumanoidRootPart", 10) -- Tambah timeout
+    if humanoidRootPart then
+        humanoidRootPart.CFrame = SUMMIT_CFRAME
+    end
 end
 
 local function startTeleportLoop()
@@ -74,7 +89,6 @@ local Window = StellarLibrary:Window({
 	TabWidth = 140
 })
 
--- HANYA MEMBUAT TAB MOUNT TARANJANG
 local SummitTab = Window:Tab("Mount Taranjang", "rbxassetid://10723407389")
 
 
