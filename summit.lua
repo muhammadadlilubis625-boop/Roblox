@@ -1,8 +1,8 @@
 --[[ 
     ================================================
     MOUNT TARANJANG AUTO SUMMIT - STELLAR SINGLE TAB
-    LOGIKA LINEAR BARU: Reset -> Teleport -> Delay (Patokan user).
-    Mengurangi ketergantungan pada event wait yang sering gagal di executor.
+    LOGIKA BARU: Teleport -> Reset -> Delay (Patokan user).
+    Urutan: Teleport ke Summit -> Reset Karakter -> Wait Respawn -> Delay.
     ================================================
 ]]
 
@@ -26,42 +26,53 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
--- Set nilai default dari Textbox saat inisialisasi
 local running = false
-local teleportsLeft = 10 -- Nilai default Textbox 10
-local delayTime = 2     -- Nilai default Textbox 2
+local teleportsLeft = 10 
+local delayTime = 2     
 
--- FUNGSI INTI: KILL, TELEPORT, DAN PENGAMANAN
-local function teleportAndKill(delay)
+-- FUNGSI INTI: MELAKUKAN SATU SIKLUS LOOP (Teleport -> Kill -> Wait Respawn -> Delay)
+local function executeCycle(delay)
     local success = pcall(function()
-        local char = player.Character
         
-        -- 1. KILL KARAKTER LAMA
-        if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                humanoid.Health = 0
-            end
-        end
+        -- Ambil karakter yang SAAT INI ada (karakter yang baru respawn dari loop sebelumnya)
+        local char = player.Character or player.CharacterAdded:Wait(5)
+        if not char then return end 
 
-        -- 2. TUNGGU KARAKTER BARU DAN SIAPKAN (WAJIB ADA WAIT AGAR MODEL BARU MUNCUL)
-        local newChar = player.Character or player.CharacterAdded:Wait(5)
-        if not newChar then return end -- Gagal mendapatkan karakter baru
-
-        -- Tunggu HumanoidRootPart muncul
-        local root = newChar:WaitForChild("HumanoidRootPart", 5)
-        if root then
-            -- 3. TELEPORT KE SUMMIT
-            root.CFrame = SUMMIT_CFRAME
+        local root = char:WaitForChild("HumanoidRootPart", 5)
+        if not root then return end
+        
+        -- Siapkan sinyal untuk menangkap karakter BERIKUTNYA setelah kill
+        local newCharWait = player.CharacterAdded:Once() 
+        
+        -----------------------------------
+        -- 1. TELEPORT KE SUMMIT
+        -----------------------------------
+        root.CFrame = SUMMIT_CFRAME
+        
+        -----------------------------------
+        -- 2. RESET/KILL KARAKTER
+        -----------------------------------
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            humanoid.Health = 0
         end
+        
+        -----------------------------------
+        -- 3. TUNGGU RESPOND KARAKTER BARU (WAJIB)
+        -----------------------------------
+        newCharWait:Wait() 
+        
+        -----------------------------------
+        -- 4. DELAY (PATOKAN USER)
+        -----------------------------------
+        if delay > 0 then task.wait(delay) end
     end)
     
     if not success then
-        StellarLibrary:Notify("Error Teleport! Mencoba lagi setelah delay.", 2)
+        -- Jika ada error, beri jeda untuk mencegah crash total
+        task.wait(2)
+        StellarLibrary:Notify("Error: Siklus gagal. Mencoba lagi...", 2)
     end
-    
-    -- 4. DELAY (PATOKAN USER UNTUK WAKTU TUNGGU ANTAR LOOP)
-    if delay > 0 then task.wait(delay) end
 end
 
 
@@ -83,8 +94,8 @@ local function startTeleportLoop(count, delay)
     task.spawn(function()
         while running and (teleportsLeft > 0 or teleportsLeft == -1) do
             
-            -- Lakukan Kill, Teleport, dan Delay
-            pcall(teleportAndKill, delay) 
+            -- Panggil fungsi inti untuk satu siklus loop
+            executeCycle(delayTime)
             
             if teleportsLeft > 0 then
                 teleportsLeft -= 1
@@ -119,7 +130,6 @@ SummitTab:Seperator("Auto Summit Settings by " .. Author);
 local TeleportCountTextbox = SummitTab:Textbox("Loop Count (0 = Infinite)", "10", function(value)
     local count = tonumber(value)
     if count and count >= 0 then
-        -- Update variabel global teleportsLeft secara instan
         teleportsLeft = (count == 0) and -1 or math.floor(count) 
     end
 end)
@@ -128,7 +138,6 @@ end)
 local DelayTextbox = SummitTab:Textbox("Delay (seconds)", "2", function(value)
     local delay = tonumber(value)
     if delay and delay >= 0.1 then
-        -- Update variabel global delayTime secara instan
         delayTime = delay
     end
 end)
@@ -137,11 +146,9 @@ SummitTab:Line();
 
 -- TOMBOL RUN UTAMA
 SummitTab:Button("START AUTO SUMMIT", function()
-    -- Tombol ini sekarang hanya perlu membaca variabel global yang sudah diupdate oleh Textbox
     local count = teleportsLeft 
     local delay = delayTime
     
-    -- Cek jika loop sudah berjalan, hentikan dulu
     if running then
         stopTeleportLoop()
         task.wait(delay * 0.5)
