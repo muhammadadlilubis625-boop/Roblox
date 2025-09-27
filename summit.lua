@@ -1,8 +1,8 @@
 --[[ 
     ================================================
     MOUNT TARANJANG AUTO SUMMIT - STELLAR SINGLE TAB
-    Fix: Input Slider diperkuat agar variabel loop 
-    diperbarui secara instan.
+    Fix: Input Slider diganti Textbox untuk kompatibilitas
+    Executor yang lebih baik.
     ================================================
 ]]
 
@@ -25,10 +25,10 @@ end;
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- Set nilai default dari Slider saat inisialisasi
+-- Set nilai default dari Textbox saat inisialisasi
 local running = false
-local teleportsLeft = 10 -- Nilai default slider 10
-local delayTime = 2     -- Nilai default slider 2
+local teleportsLeft = 10 -- Nilai default Textbox 10
+local delayTime = 2     -- Nilai default Textbox 2
 
 local function teleportToSummit()
     local char = player.Character
@@ -66,7 +66,7 @@ local function startTeleportLoop(count, delay)
         task.wait(delay * 0.5) -- Beri waktu sebentar untuk menghentikan thread lama
     end
 
-    -- Update variabel kontrol (menggunakan nilai yang sudah di-set oleh slider)
+    -- Update variabel kontrol (menggunakan nilai yang sudah di-set oleh textbox)
     teleportsLeft = count
     delayTime = delay
     running = true
@@ -106,26 +106,37 @@ local SummitTab = Window:Tab("Mount Taranjang", "rbxassetid://10723407389")
 -- 4. MENAMBAHKAN KONTROL AUTO SUMMIT KE TAB
 SummitTab:Seperator("Auto Summit Settings by " .. Author);
 
--- Slider Loop Count: Perbarui variabel global saat nilai berubah
-local TeleportCountSlider = SummitTab:Slider("Loop Count (0 = Infinite)", 0, 100, 10, function(value)
-    local count = math.floor(value)
-    -- Update variabel global teleportsLeft secara instan
-    teleportsLeft = (count == 0) and -1 or count 
+-- Textbox Loop Count: Perbarui variabel global saat nilai berubah
+local TeleportCountTextbox = SummitTab:Textbox("Loop Count (0 = Infinite)", "10", function(value)
+    local count = tonumber(value)
+    if count and count >= 0 then
+        -- Update variabel global teleportsLeft secara instan
+        teleportsLeft = (count == 0) and -1 or math.floor(count) 
+    end
 end)
 
--- Slider Delay: Perbarui variabel global saat nilai berubah
-local DelaySlider = SummitTab:Slider("Delay (seconds)", 0.5, 10, 2, function(value)
-    -- Update variabel global delayTime secara instan
-    delayTime = value
+-- Textbox Delay: Perbarui variabel global saat nilai berubah
+local DelayTextbox = SummitTab:Textbox("Delay (seconds)", "2", function(value)
+    local delay = tonumber(value)
+    if delay and delay >= 0.1 then
+        -- Update variabel global delayTime secara instan
+        delayTime = delay
+    end
 end)
 
 SummitTab:Line();
 
 -- TOMBOL RUN UTAMA
 SummitTab:Button("START AUTO SUMMIT", function()
-    -- Tombol ini sekarang hanya perlu membaca variabel global yang sudah diupdate oleh slider
+    -- Tombol ini sekarang hanya perlu membaca variabel global yang sudah diupdate oleh Textbox
     local count = teleportsLeft 
     local delay = delayTime
+    
+    -- Cek jika loop sudah berjalan, hentikan dulu
+    if running then
+        stopTeleportLoop()
+        task.wait(delay * 0.5)
+    end
     
     startTeleportLoop(count, delay);
 end);
