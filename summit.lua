@@ -6,7 +6,7 @@
 ]]
 
 -- UBAH INI SESUAI KEINGINANMU
-local Author = "rispha"
+local Author = "Rafaczx"
 local SUMMIT_CFRAME = CFrame.new(8711.95215, 1637.02124, 1343.46667, 0.375418901, -4.74302198e-09, 0.926855266, 1.80503723e-10, 1, 5.04421527e-09, -0.926855266, -1.72639292e-09, 0.375418901)
 -- ================================================
 
@@ -69,13 +69,13 @@ end
 -- 3. PEMBUATAN WINDOW DAN TAB TUNGGAL
 local UserInputService = game:GetService("UserInputService")
 local Window = StellarLibrary:Window({
-	SubTitle = "x2zu Project - " .. Author,
+	SubTitle = "Rafaczx HUB - " .. Author,
 	Size = game:GetService("UserInputService").TouchEnabled and UDim2.new(0, 380, 0, 260) or UDim2.new(0, 500, 0, 320),
 	TabWidth = 140
 })
 
 -- HANYA MEMBUAT TAB MOUNT TARANJANG
-local SummitTab = Window:Tab("Mount Taranjang", "rbxassetid://10710606994") -- Icon Gunung/Map
+local SummitTab = Window:Tab("Mount Taranjang", "rbxassetid://10723407389")
 
 
 -- 4. MENAMBAHKAN KONTROL AUTO SUMMIT KE TAB
