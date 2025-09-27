@@ -1,8 +1,8 @@
 --[[ 
     ================================================
     MOUNT TARANJANG AUTO SUMMIT - STELLAR SINGLE TAB
-    Fix: Input Slider diganti Textbox untuk kompatibilitas
-    Executor yang lebih baik.
+    FINAL FIX: Memperbaiki masalah Auto Loop dan Teleport
+    yang gagal karena timing executor yang ketat.
     ================================================
 ]]
 
@@ -30,43 +30,46 @@ local running = false
 local teleportsLeft = 10 -- Nilai default Textbox 10
 local delayTime = 2     -- Nilai default Textbox 2
 
+-- FUNGSI TELEPORTASI DENGAN LOGIKA TUNGGU YANG LEBIH KUAT
 local function teleportToSummit()
-    local char = player.Character
+    local oldChar = player.Character
+    local humanoid
     
-    -- 1. Siapkan sinyal untuk menunggu karakter BARU (lebih andal)
+    -- 1. Siapkan sinyal untuk menunggu karakter BARU sebelum melakukan kill
     local newCharSignal = player.CharacterAdded:Once()
     
-    if char then
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
+    -- Lakukan kill jika karakter lama ada
+    if oldChar then
+        humanoid = oldChar:FindFirstChildOfClass("Humanoid")
         if humanoid and humanoid.Health > 0 then
             humanoid.Health = 0 -- Kill
         end
     end
 
-    -- 2. Tunggu sampai karakter lama hilang (agar event CharacterAdded yang selanjutnya dipastikan karakter baru)
-    while player.Character ~= nil do
-        task.wait()
-    end
-    
-    -- 3. Tunggu sampai karakter baru muncul (menggunakan sinyal yang sudah disiapkan)
+    -- 2. Tunggu sampai karakter baru muncul (menggunakan sinyal yang sudah disiapkan)
     local newChar = newCharSignal:Wait()
     
-    -- 4. Teleport karakter baru
+    -- 3. Tunggu hingga HumanoidRootPart muncul (penting!)
     local humanoidRootPart = newChar:WaitForChild("HumanoidRootPart", 10)
+    
     if humanoidRootPart then
+        -- Lakukan teleportasi
         humanoidRootPart.CFrame = SUMMIT_CFRAME
+    else
+        StellarLibrary:Notify("Gagal: HumanoidRootPart tidak ditemukan.", 2);
     end
 end
+
 
 -- Fungsi Utama: Memulai loop teleportasi
 local function startTeleportLoop(count, delay)
     -- Jika sudah berjalan, hentikan dulu
     if running then
         running = false
-        task.wait(delay * 0.5) -- Beri waktu sebentar untuk menghentikan thread lama
+        task.wait(delay * 0.5)
     end
 
-    -- Update variabel kontrol (menggunakan nilai yang sudah di-set oleh textbox)
+    -- Update variabel kontrol
     teleportsLeft = count
     delayTime = delay
     running = true
@@ -75,8 +78,11 @@ local function startTeleportLoop(count, delay)
 
     task.spawn(function()
         while running and (teleportsLeft > 0 or teleportsLeft == -1) do
-            teleportToSummit()
+            -- Panggil fungsi teleportasi yang sudah diperbaiki
+            teleportToSummit() 
+            
             if delayTime > 0 then task.wait(delayTime) end
+            
             if teleportsLeft > 0 then
                 teleportsLeft -= 1
             end
