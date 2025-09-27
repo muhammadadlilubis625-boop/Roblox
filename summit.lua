@@ -1,9 +1,8 @@
 --[[ 
     ================================================
     MOUNT TARANJANG AUTO SUMMIT - STELLAR SINGLE TAB
-    FINAL FIX: Memperbaiki masalah Auto Loop dan Teleport
-    yang gagal karena timing executor yang ketat. Menggunakan
-    metode langsung (tanpa event wait) untuk stabilitas Delta.
+    LOGIKA LINEAR BARU: Reset -> Teleport -> Delay (Patokan user).
+    Mengurangi ketergantungan pada event wait yang sering gagal di executor.
     ================================================
 ]]
 
@@ -32,21 +31,37 @@ local running = false
 local teleportsLeft = 10 -- Nilai default Textbox 10
 local delayTime = 2     -- Nilai default Textbox 2
 
--- FUNGSI TELEPORTASI DENGAN LOGIKA TUNGGU YANG LEBIH KUAT
-local function teleportToSummit()
-    local oldChar = player.Character
-    local humanoid
-    
-    -- Lakukan kill jika karakter lama ada
-    if oldChar then
-        humanoid = oldChar:FindFirstChildOfClass("Humanoid")
-        if humanoid and humanoid.Health > 0 then
-            humanoid.Health = 0 -- Kill
+-- FUNGSI INTI: KILL, TELEPORT, DAN PENGAMANAN
+local function teleportAndKill(delay)
+    local success = pcall(function()
+        local char = player.Character
+        
+        -- 1. KILL KARAKTER LAMA
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                humanoid.Health = 0
+            end
         end
-    end
 
-    -- Kunci: Kita biarkan loop utama menangani timing respawn dan teleport
-    -- Tidak ada 'wait' event di sini
+        -- 2. TUNGGU KARAKTER BARU DAN SIAPKAN (WAJIB ADA WAIT AGAR MODEL BARU MUNCUL)
+        local newChar = player.Character or player.CharacterAdded:Wait(5)
+        if not newChar then return end -- Gagal mendapatkan karakter baru
+
+        -- Tunggu HumanoidRootPart muncul
+        local root = newChar:WaitForChild("HumanoidRootPart", 5)
+        if root then
+            -- 3. TELEPORT KE SUMMIT
+            root.CFrame = SUMMIT_CFRAME
+        end
+    end)
+    
+    if not success then
+        StellarLibrary:Notify("Error Teleport! Mencoba lagi setelah delay.", 2)
+    end
+    
+    -- 4. DELAY (PATOKAN USER UNTUK WAKTU TUNGGU ANTAR LOOP)
+    if delay > 0 then task.wait(delay) end
 end
 
 
@@ -68,31 +83,8 @@ local function startTeleportLoop(count, delay)
     task.spawn(function()
         while running and (teleportsLeft > 0 or teleportsLeft == -1) do
             
-            -- Lakukan Kill, ini akan memicu respawn
-            pcall(teleportToSummit) 
-
-            -- **INTI PERBAIKAN LOOP:** Tunggu hingga karakter baru muncul dan dimuat
-            task.wait(0.5) -- Beri sedikit waktu agar game memproses kematian
-            
-            local success, newChar = pcall(function()
-                return player.Character or player.CharacterAdded:Wait()
-            end)
-            
-            if success and newChar then
-                local success2, root = pcall(function()
-                    return newChar:WaitForChild("HumanoidRootPart", 5)
-                end)
-                
-                if success2 and root then
-                    -- Lakukan Teleport (ini yang gagal di percobaan sebelumnya)
-                    pcall(function()
-                        root.CFrame = SUMMIT_CFRAME
-                    end)
-                end
-            end
-            
-            -- Tunggu delay antar loop
-            if delayTime > 0 then task.wait(delayTime) end
+            -- Lakukan Kill, Teleport, dan Delay
+            pcall(teleportAndKill, delay) 
             
             if teleportsLeft > 0 then
                 teleportsLeft -= 1
