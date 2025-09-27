@@ -32,28 +32,24 @@ local delayTime = 2     -- Nilai default slider 2
 
 local function teleportToSummit()
     local char = player.Character
-    if not char then 
-        player.CharacterAdded:Wait()
-        char = player.Character
+    
+    -- 1. Siapkan sinyal untuk menunggu karakter BARU (lebih andal)
+    local newCharSignal = player.CharacterAdded:Once()
+    
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            humanoid.Health = 0 -- Kill
+        end
     end
-    
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
 
-    -- 1. Kill the character
-    humanoid.Health = 0
-    
-    -- 2. Tunggu sampai karakter lama hilang
+    -- 2. Tunggu sampai karakter lama hilang (agar event CharacterAdded yang selanjutnya dipastikan karakter baru)
     while player.Character ~= nil do
         task.wait()
     end
     
-    -- 3. Tunggu sampai karakter baru muncul
-    local newChar = player.Character
-    while newChar == nil do
-        player.CharacterAdded:Wait()
-        newChar = player.Character
-    end
+    -- 3. Tunggu sampai karakter baru muncul (menggunakan sinyal yang sudah disiapkan)
+    local newChar = newCharSignal:Wait()
     
     -- 4. Teleport karakter baru
     local humanoidRootPart = newChar:WaitForChild("HumanoidRootPart", 10)
@@ -74,6 +70,8 @@ local function startTeleportLoop(count, delay)
     teleportsLeft = count
     delayTime = delay
     running = true
+    
+    StellarLibrary:Notify("Auto Summit Dimulai! Count: " .. (count == -1 and "Infinite" or count), 3);
 
     task.spawn(function()
         while running and (teleportsLeft > 0 or teleportsLeft == -1) do
